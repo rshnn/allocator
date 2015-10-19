@@ -3,32 +3,20 @@
 #include    <stdlib.h>
 #include    "allocator.h"
 
-#define RED     "\x1b[31m"
-#define GREEN   "\x1b[32m"
+#define RED         "\x1b[31m"
+#define GREEN       "\x1b[32m"
+#define CYAN        "\x1b[36m"
 #define NORMALIZE   "\x1b[0m"
 
-#define BLOCKSIZE   10000
+/* 8KB Heap Space */
+#define BLOCKSIZE   8192
 
 static char block[BLOCKSIZE];
 
 
-void initMemUnit(memEntry *unit, char *file, int line)
-{
-    //static struct memEntry  *unit;  
-
-    unit                    = (struct memEntry*) block;
-    unit->prev              = unit->next = 0;
-    unit->size              = BLOCKSIZE - sizeof(struct memEntry);
-    unit->isfree            = 1;
-    unit->recognPattern     = 13371337;       
-    unit->linenum           = line;
-    unit->file              = file;
-
-}
-
 /*
-    Checks a memEntry struct for a recognition pattern.
-    If the pattern matches, this entry was allocated.  Else, it is invalid.
+    Checks the global block structure for a recognition pattern.
+    If the pattern matches, the stucture is valid.  Else, it is corrupt.
 */
 int validityCheck()
 {
@@ -47,7 +35,7 @@ int validityCheck()
 /*
     Returns a pointer to a successfully allocated block of memory.
 */
-void* mymalloc(unsigned int size, char *file, int line)
+void* mymalloc(int size, char *file, int line)
 {
     static struct memEntry *root;
     static int initialzied      = 0;
@@ -69,17 +57,18 @@ void* mymalloc(unsigned int size, char *file, int line)
     }
 
     if(validityCheck()){
-        printf(RED "Error:  Internal structure failure.\n" NORMALIZE);
+        printf(RED "(line %d, %s) Error:  Internal structure failure.\n" NORMALIZE, line, file);
+        return NULL;
+    }
+    if(size <= 0){
+        printf(RED "(line %d, %s) Error:  Allocation request is not of a valid size.  Must be a positive integer.\n" NORMALIZE, line, file);
         return NULL;
     }
     if(size > BLOCKSIZE){
-        printf(RED "Error (line %d, %s):  Allocation request is larger than virtual heap structure.\n" NORMALIZE, line, file);
+        printf(RED "(line %d, %s) Error:  Allocation request is larger than virtual heap structure.\n" NORMALIZE, line, file);
         return NULL;
     }
-    if((int)size <= 0){
-        printf(RED "Error (line %d, %s):  Allocation request is not of a valid size.  Must be a positive integer.\n" NORMALIZE, line, file);
-        return NULL;
-    }
+
 
     temp = root;
 
@@ -107,7 +96,7 @@ void* mymalloc(unsigned int size, char *file, int line)
 
 
     if(target == NULL){
-        printf(RED "Error (line %d, %s):  Not enough available memory in the virtual heap structure for the request.\n" NORMALIZE, line, file);
+        printf(RED "(line %d, %s) Error:  Not enough available memory in the virtual heap structure for the request.\n" NORMALIZE, line, file);
         return NULL;
     }
 
@@ -135,6 +124,7 @@ void* mymalloc(unsigned int size, char *file, int line)
         temp->isfree           = 0;
         temp->file             = file;
         temp->linenum          = line;
+        printf(GREEN "(line %d, %s) Successful malloc call. \n" NORMALIZE, line, file);
         return (char*)temp + sizeof(struct memEntry);
     }
 
@@ -146,7 +136,7 @@ void myfree(void *ptr, char *file, unsigned int line)
 {
 
     if(ptr == NULL){
-        printf(RED "Error (line %d, %s):  Null pointer attempting to be freed.\n" NORMALIZE, line, file);
+        printf(RED "(line %d, %s) Error:  Null pointer attempting to be freed.\n" NORMALIZE, line, file);
         return;
     }
     struct memEntry *curr, *prev, *next;
@@ -154,18 +144,18 @@ void myfree(void *ptr, char *file, unsigned int line)
     if(((char*)ptr-sizeof(struct memEntry)) < (char*)block || 
     ((char*)ptr-sizeof(struct memEntry)) > (char*)block + BLOCKSIZE ){
 
-        printf(RED "Error (line %d, %s):  Invalid free() call.\n" NORMALIZE, line, file);
+        printf(RED "(line %d, %s) Error:  Invalid free() call.\n" NORMALIZE, line, file);
         return;
     }
 
 
     curr = (memEntry *)((char*)ptr - sizeof(memEntry));
     if(curr->recognPattern != 13371337){
-        printf(RED "Error (line %d, %s):  Invalid free() call.  This pointer was not allocated by mymalloc().\n" NORMALIZE, line, file);
+        printf(RED "(line %d, %s) Error:  Invalid free() call.  This pointer was not allocated by mymalloc().\n" NORMALIZE, line, file);
         return;
     }
     else if(curr->isfree){
-        printf(RED "Error (line %d, %s):  Attempting to free unassigned memory units.\n" NORMALIZE, line, file);
+        printf(RED "(line %d, %s) Error:  Attempting to free unassigned memory units.\n" NORMALIZE, line, file);
         return;
     }
 
@@ -189,6 +179,8 @@ void myfree(void *ptr, char *file, unsigned int line)
         if(next->next != NULL)
             next->next->prev = prev;
     }
+
+    printf(CYAN "(line %d, %s) Successful free. \n" NORMALIZE, line, file);
 }
 
 
