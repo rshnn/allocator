@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Werror -g
 
-all: testcase01 testcase02 testcase03 testcase04 testcase05 testcase06
+all: testcase01 testcase02 testcase03 testcase04 testcase05 testcase06 testcase07
 
 testcase01: testcase01.c allocator.c
 	$(CC) $(CFLAGS) -o $@ $^ 
@@ -21,5 +21,8 @@ testcase05: testcase05.c allocator.c
 testcase06: testcase06.c allocator.c
 	$(CC) $(CFLAGS) -o $@ $^ 
 
+testcase07: testcase07.c allocator.c
+	$(CC) $(CFLAGS) -o $@ $^ 
+
 clean:
-	rm -f testcase01 testcase02 testcase03 testcase04 testcase05 testcase06
+	rm -f testcase01 testcase02 testcase03 testcase04 testcase05 testcase06 testcase07
